@@ -1,0 +1,21 @@
+{
+  "name": "at-commerce-backend",
+  "version": "1.0.0",
+  "description": "A backend for a personal iOS e-commerce app project",
+  "license": "ISC",
+  "author": "Andre Teixeira",
+  "type": "commonjs",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node --env-file=.env --watch src/index.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "jest": "^30.4.2",
+    "prisma": "^6.19.3"
+  }
+}

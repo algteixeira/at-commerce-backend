@@ -1,15 +1,22 @@
 const { UserController } = require('../controllers/user.controller');
 
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcrypt');
+
 jest.mock('@prisma/client', () => {
     const mPrisma = {
         user: {
             create: jest.fn(),
-            findFirst: jest.fn(),
+            findUnique: jest.fn(),
         },
     };
     return { PrismaClient: jest.fn(() => mPrisma) };
 });
+
+jest.mock('bcrypt', () => ({
+    hash: jest.fn(),
+    compare: jest.fn()
+}));
 
 const prisma = new PrismaClient();
 
@@ -33,6 +40,8 @@ describe('UserController', () => {
             mockReq = {
                 body: { username: 'luiz', password: '123' }
             };
+
+            bcrypt.hash.mockResolvedValue('encrypted_pass');
 
             prisma.user.create.mockResolvedValue({ id: 1, username: 'luiz' });
 
@@ -60,8 +69,8 @@ describe('UserController', () => {
     describe('Method: login', () => {
     test('Must give login permission if existing data was provided!', async () => {
         mockReq = { body: { username: 'luiz', password: '123' } };
-
-        prisma.user.findFirst.mockResolvedValue({ username: 'luiz', password: '123' });
+        bcrypt.compare.mockResolvedValue(true);
+        prisma.user.findUnique.mockResolvedValue({ username: 'luiz'});
 
         await userController.login(mockReq, mockRes);
         
@@ -72,7 +81,7 @@ describe('UserController', () => {
     test('Must block access when no user or password was provided', async () => {
         mockReq = { body: { username: '', password: '123' } };
 
-        prisma.user.findFirst.mockResolvedValue({ username: '', password: '123' });
+        prisma.user.findUnique.mockResolvedValue({ username: '' });
 
         await userController.login(mockReq, mockRes);
         
@@ -83,9 +92,23 @@ describe('UserController', () => {
         });
     });
 
-    test('Must block access when wrong user/pass was provided', async () => {
-        prisma.user.findFirst.mockResolvedValue(null);
+    test('Must block access when wrong username was provided', async () => {
+        prisma.user.findUnique.mockResolvedValue(null);
         
+        mockReq = { body: { username: 'xisculous', password: 'danone' } };
+        
+        await userController.login(mockReq, mockRes);
+        
+        expect(mockRes.status).toHaveBeenCalledWith(400);
+        expect(mockRes.json).toHaveBeenCalledWith({
+            error: "AUTH",
+            message: "Wrong credentials!"
+        });
+    });
+
+    test('Must block access when wrong password was provided', async () => {
+        prisma.user.findUnique.mockResolvedValue({id:3, username: 'xisculous', password: 'hashed_pass'});
+        bcrypt.compare.mockResolvedValue(false);
         mockReq = { body: { username: 'xisculous', password: 'danone' } };
         
         await userController.login(mockReq, mockRes);

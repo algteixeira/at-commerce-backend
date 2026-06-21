@@ -23,14 +23,14 @@ class UserController {
         if (!username || !password) {
             return res.status(400).json({error: "AUTH", message: "Missing username/password!"});
         }
-        
-        const authenticated = await prisma.user.findUnique({
+
+        const userDb = await prisma.user.findUnique({
             where: {
                 username
             }
         })
 
-        if (!authenticated || !await bcrypt.compare(password, authenticated.password)) {
+        if (!userDb || !await bcrypt.compare(password, userDb.password)) {
             return res.status(400).json({
                 error: "AUTH",
                 message: "Wrong credentials!"

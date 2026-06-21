@@ -1,17 +1,18 @@
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcrypt');
 const prisma = new PrismaClient();
 
 class UserController {
-    sysUsers = [];
     create = async (req,res) => {
         const {username, password} = req.body;
         if (!username || !password) {
             return res.status(400).json({error: "AUTH", message: "Missing username/password!"});
         }
+        const dbPass = await bcrypt.hash(password, 10);
         await prisma.user.create({
             data: {
                 username,
-                password
+                password: dbPass
             }
         });
         return res.status(200).json({message:'Created!'});
@@ -22,13 +23,14 @@ class UserController {
         if (!username || !password) {
             return res.status(400).json({error: "AUTH", message: "Missing username/password!"});
         }
-        const authenticated = await prisma.user.findFirst({
+        
+        const authenticated = await prisma.user.findUnique({
             where: {
-                username,
-                password
+                username
             }
         })
-        if (!authenticated) {
+
+        if (!authenticated || !await bcrypt.compare(password, authenticated.password)) {
             return res.status(400).json({
                 error: "AUTH",
                 message: "Wrong credentials!"

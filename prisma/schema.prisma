@@ -15,3 +15,20 @@ model User {
 
   @@map("users")
 }
+
+model Product {
+  productId    Int       @id @default(autoincrement())
+  name         String
+  description  String
+  category     String
+  price        Decimal   @db.Decimal(10, 2)
+  
+  // Campos para o controle inteligente de ofertas
+  offerPrice   Decimal?  @db.Decimal(10, 2)
+  offerStartAt DateTime?
+  offerEndAt   DateTime?
+  
+  createdAt    DateTime  @default(now())
+
+  @@map("products")
+}

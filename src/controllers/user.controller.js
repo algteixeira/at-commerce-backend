@@ -1,6 +1,9 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const prisma = new PrismaClient();
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 class UserController {
     create = async (req, res) => {
@@ -54,7 +57,13 @@ class UserController {
                     message: "Wrong credentials!"
                 });
             }
-            return res.status(200).json({ message: "Access granted!" });
+
+            const token = jwt.sign(
+                { userId: userDb.id, username: userDb.username },
+                JWT_SECRET,
+                { expiresIn: '1d' }
+            );
+            return res.status(200).json({ message: "Access granted!", Authorization: token });
         } catch (error) {
             return res.status(500).json({
                 error: 'DATABASE ERROR',

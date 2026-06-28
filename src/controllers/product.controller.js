@@ -1,7 +1,10 @@
 const { PrismaClient } = require('@prisma/client');
+const { redisInstance } = require('../utils/cache');
 const prisma = new PrismaClient();
 
 class ProductController {
+    onSaleCacheKey = 'product:on_sale';
+
     create = async (req, res) => {
         const requiredFields = ['name', 'description', 'category', 'price'];
         const { name, description, category, price } = req.body;
@@ -90,6 +93,7 @@ class ProductController {
                     offerEndAt: new Date(offerEndAt)
                 }
             }); 
+            await redisInstance.del(this.onSaleCacheKey);
             return res.status(200).json({
                 message: 'Product sale successfully changed!',
                 updatedProduct
@@ -104,6 +108,16 @@ class ProductController {
 
     getOnSale = async (req, res) => {
         try {
+            const cachedProducts = await redisInstance.get(this.onSaleCacheKey);
+
+            if (cachedProducts) {
+                const parsedProducts = JSON.parse(cachedProducts);
+                return res.status(200).json({
+                    message: 'Products returned from cache',
+                    parsedProducts
+                })
+            }
+
             const productsOnSale =  await prisma.product.findMany(
                 {
                     where: {
@@ -116,7 +130,11 @@ class ProductController {
                         }
                     }
                 }
-            )
+            );
+
+            await redisInstance.set(this.onSaleCacheKey, JSON.stringify(productsOnSale), {
+                EX: 1800
+            });
 
             return res.status(200).json({
                 productsOnSale

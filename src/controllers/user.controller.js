@@ -8,9 +8,6 @@ const JWT_SECRET = process.env.JWT_SECRET;
 class UserController {
     create = async (req, res) => {
         const { username, password } = req.body;
-        if (!username || !password) {
-            return res.status(400).json({ error: "AUTH", message: "Missing username/password!" });
-        }
         const dbPass = await bcrypt.hash(password, 10);
         try {
             const userExists = await prisma.user.findUnique({
